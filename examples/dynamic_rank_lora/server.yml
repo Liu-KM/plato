@@ -3,19 +3,22 @@ clients:
     type: simple
 
     # The total number of clients
-    total_clients: 1 
+    total_clients: 100
 
     # The number of clients selected in each round
-    per_round: 1
+    per_round: 20
 
     # Should the clients compute test accuracy locally?
-    do_test: true
+    do_test: false
 
     comm_simulation: false
 
 server:
     address: 127.0.0.1
-    port: 8000
+    port: 8080
+
+    # No client processes will be launched by the server
+    disable_clients: true
 
     comm_simulation: false
 
@@ -23,34 +26,36 @@ server:
 
 data:
     dataset_name: glue
-    task: mrpc
+    dataset_config: mrpc
 
     # Number of samples in each partition
-    partition_size: 300
+    partition_size: 200
 
     # IID or non-IID?
-    sampler: iid
+    sampler: noniid
 
     # The random seed for sampling data
-    random_seed: 1
+    random_seed: 42
 
 trainer:
     # The type of the trainer
     type: HuggingFace
 
     # The maximum number of training rounds
-    rounds: 100
+    rounds: 500
+    
+    max_concurrency: 3
 
     # The target perplexity
-    target_accuracy: 0.9
+    target_accuracy: 0.95
 
     # The machine learning model
     model_name: roberta-large
     model_type: huggingface
 
     # Number of epoches for local training in each communication round
-    epochs: 10
-    batch_size: 2
+    epochs: 3
+    batch_size: 12
     optimizer: SGD
 
 algorithm:

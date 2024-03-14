@@ -42,6 +42,16 @@ class LoraModel(torch.nn.Module):
         )
         self.base_model.print_trainable_parameters()
 
+    def reset_rank(self, rank):
+        self.base_model = self.base_model.unload()
+        lora_config = Config().parameters.lora
+        lora_config.r = min(rank,lora_config.r)
+        self.base_model = get_peft_model(
+            self.base_model, LoraConfig(**lora_config._asdict())
+        )
+        self.base_model.print_trainable_parameters()
+
+
     def forward(
         self,
         input_ids=None,
@@ -66,6 +76,11 @@ class LoraModel(torch.nn.Module):
 
 
 class Trainer(huggingface.Trainer):
+    # def __init__(self, model=None, callbacks=None):
+    #     super().__init__(model, callbacks)
+    #     gpu_id = self.client_id % torch.cuda.device_count()
+    #     self.device = f"cuda:{gpu_id}"
+
     """A trainer with custom training and testing loops for LoRA fine-tuning."""
 
     # pylint: disable=unused-argument
@@ -83,6 +98,19 @@ class Trainer(huggingface.Trainer):
         self.training_args.num_train_epochs = config["epochs"]
         self.training_args.per_device_train_batch_size = config["batch_size"]
 
+
+        # self.model.base_model.print_trainable_parameters()
+
+
+        # trainable_params, all_param = self.model.get_nb_trainable_parameters()
+
+        # print(
+        #     f"trainable params: {trainable_params:,d} || all params: {all_param:,d} || trainable%: {100 * trainable_params / all_param}"
+        # )
+        # logging.info(
+        #     f"trainable params: {trainable_params:,d} || all params: {all_param:,d} || trainable%: {100 * trainable_params / all_param}"
+        # )
+
         self.trainer = huggingface.SampledHuggingFaceTrainer(
             model=self.model,
             args=self.training_args,
@@ -95,7 +123,7 @@ class Trainer(huggingface.Trainer):
             sampler=sampler,
             callbacks=self.trainer_callbacks,
         )
-        # logging.info(f"Trainer is args: {self.trainer.args}")
+
         self.trainer.train()
 
     def test_model(
@@ -148,8 +176,6 @@ class Trainer(huggingface.Trainer):
         logging.info(f"The metrics is {metrics}")
         return metrics["eval_accuracy"]
 
-    def save_model(self):
-        logging.info("Skip trainer saving.")
 
 
 class DataSource(base.DataSource):
@@ -159,7 +185,7 @@ class DataSource(base.DataSource):
         super().__init__()
 
         dataset_name = Config().data.dataset_name
-        task = Config().data.task
+        task = Config().data.dataset_config
         logging.info("Dataset: %s(%s)", dataset_name,task)
 
         dataset = load_dataset(dataset_name,task)
@@ -181,7 +207,7 @@ class DataSource(base.DataSource):
 
         tokenized_datasets = dataset.map(
             tokenize_function,
-            batched=True,
+            batched=False,
             remove_columns=["idx", "sentence1", "sentence2"],
         )
         tokenized_datasets = tokenized_datasets.rename_column("label", "labels")
@@ -191,6 +217,14 @@ class DataSource(base.DataSource):
         self.trainset = train_data
         self.testset = val_data
 
+    def targets(self):
+        """ Obtains a list of targets (labels) for all the examples
+        in the dataset. """
+        return self.trainset["labels"]
+    def classes(self):
+        """Returns the list of unique classes in the dataset."""
+        # For MRPC, classes are fixed as it's a binary classification task
+        return [0, 1]
 
 class Algorithm(fedavg.Algorithm):
     def extract_weights(self, model=None):
@@ -199,8 +233,14 @@ class Algorithm(fedavg.Algorithm):
             k: v.cpu()
             for k, v in get_peft_model_state_dict(self.model.base_model).items()
         }
+    def reset_rank(self,rank):
+        rank = min(Config().parameters.lora.r,rank)
+        lora_config = Config().parameters.lora
+        self.model.base_model = self.model.base_model.unload()
+        lora_config = LoraConfig(**lora_config._asdict())
+        lora_config.r=rank
+        self.model.base_model = get_peft_model(self.model.base_model,lora_config)
 
     def load_weights(self, weights):
-        # Load LoRA weights
         return set_peft_model_state_dict(self.model.base_model, weights)
 

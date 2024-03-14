@@ -11,7 +11,7 @@ import asyncio
 import logging
 
 from plato.clients import simple
-
+# from torch.nn import DataParallel
 from lora_utils import LoraModel, DataSource, Trainer, Algorithm
 
 
@@ -22,6 +22,7 @@ class Client(simple.Client):
         super().__init__(
             model=model, datasource=datasource, trainer=trainer, algorithm=algorithm
         )
+        
         logging.info("A LoRA client has been initialized.")
 
 

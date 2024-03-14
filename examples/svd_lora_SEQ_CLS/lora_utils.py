@@ -66,6 +66,11 @@ class LoraModel(torch.nn.Module):
 
 
 class Trainer(huggingface.Trainer):
+    # def __init__(self, model=None, callbacks=None):
+    #     super().__init__(model, callbacks)
+    #     gpu_id = self.client_id % torch.cuda.device_count()
+    #     self.device = f"cuda:{gpu_id}"
+
     """A trainer with custom training and testing loops for LoRA fine-tuning."""
 
     # pylint: disable=unused-argument
@@ -148,8 +153,6 @@ class Trainer(huggingface.Trainer):
         logging.info(f"The metrics is {metrics}")
         return metrics["eval_accuracy"]
 
-    def save_model(self):
-        logging.info("Skip trainer saving.")
 
 
 class DataSource(base.DataSource):
@@ -159,7 +162,7 @@ class DataSource(base.DataSource):
         super().__init__()
 
         dataset_name = Config().data.dataset_name
-        task = Config().data.task
+        task = Config().data.dataset_config
         logging.info("Dataset: %s(%s)", dataset_name,task)
 
         dataset = load_dataset(dataset_name,task)
@@ -181,7 +184,7 @@ class DataSource(base.DataSource):
 
         tokenized_datasets = dataset.map(
             tokenize_function,
-            batched=True,
+            batched=False,
             remove_columns=["idx", "sentence1", "sentence2"],
         )
         tokenized_datasets = tokenized_datasets.rename_column("label", "labels")
@@ -191,6 +194,14 @@ class DataSource(base.DataSource):
         self.trainset = train_data
         self.testset = val_data
 
+    def targets(self):
+        """ Obtains a list of targets (labels) for all the examples
+        in the dataset. """
+        return self.trainset["labels"]
+    def classes(self):
+        """Returns the list of unique classes in the dataset."""
+        # For MRPC, classes are fixed as it's a binary classification task
+        return [0, 1]
 
 class Algorithm(fedavg.Algorithm):
     def extract_weights(self, model=None):
