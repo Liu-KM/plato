@@ -8,7 +8,7 @@ python examples/lora/lora_server.py -c examples/lora/server.yml
 
 import logging
 import random
-
+from plato.config import Config
 from plato.servers import fedavg_lora, fedavg
 
 from lora_utils import LoraModel, DataSource, Trainer, Algorithm
@@ -31,7 +31,15 @@ class Server(fedavg_lora.Server):
         )
         logging.info("A LoRA server has been initialized.")
     def customize_server_payload(self, payload):
-        rank = random.randint(2,8)
+        rank = 0
+        for update in self.updates:
+            if update.client_id == self.selected_client_id:
+                sample_size = update.report.num_samples
+                break
+        for update in self.updates:
+            if update.report.num_samples >= sample_size:
+                rank += 1
+        r = rank/len(self.updates)*Config().parameters.lora.r
         return [payload,rank]
     def save_to_checkpoint(self):
         logging.info("Skipping checkpoint.")
