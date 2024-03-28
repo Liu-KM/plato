@@ -35,7 +35,7 @@ trainer:
     type: HuggingFace
 
     # The maximum number of training rounds
-    rounds: 500
+    rounds: 100
 
     max_concurrency: 4
 

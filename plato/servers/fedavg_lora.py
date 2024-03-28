@@ -52,6 +52,8 @@ class Server(fedavg.Server):
                 S_truncated = S[:r]
                 V_truncated = V[:,:r]
                 weights[(name+".lora_A.weight")] = (U_truncated@torch.diag(S_truncated)).t()
+                # weights[(name+".lora_A.weight")] = (U_truncated).t()
+                # weights[(name+".lora_B.weight")] = V_truncated@torch.diag(S_truncated)
                 weights[(name+".lora_B.weight")] = V_truncated
         return weights
             
