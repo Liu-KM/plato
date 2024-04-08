@@ -48,7 +48,7 @@ class Server(fedavg_lora.Server):
             r = Config().parameters.lora.r
         else:
             r = rank/len(self.updates)*Config().parameters.lora.r
-            r= int(r)
+            r=int(r)
         
         logging.info(f"Client:{self.selected_client_id} Datasize:{sample_size} Rank:{r}")
         return [payload,r]
