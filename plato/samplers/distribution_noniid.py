@@ -61,7 +61,7 @@ class Sampler(base.Sampler):
             target_list = datasource.get_test_set().targets
         else:
             # the list of labels (targets) for all the examples
-            target_list = datasource.get_train_set().targets
+            target_list = datasource.targets()
 
         class_list = datasource.classes()
         total_data_size = len(target_list)

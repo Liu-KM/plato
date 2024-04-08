@@ -31,16 +31,27 @@ class Server(fedavg_lora.Server):
         )
         logging.info("A LoRA server has been initialized.")
     def customize_server_payload(self, payload):
+        if not hasattr(self, "client_data_size"):
+            self.client_data_size = {}
+        for update in self.updates:
+            self.client_data_size[update.client_id] = update.report.num_samples
         rank = 0
-        for update in self.updates:
-            if update.client_id == self.selected_client_id:
-                sample_size = update.report.num_samples
-                break
-        for update in self.updates:
-            if update.report.num_samples >= sample_size:
-                rank += 1
-        r = rank/len(self.updates)*Config().parameters.lora.r
-        return [payload,rank]
+        sample_size=-1
+        if self.selected_client_id in self.client_data_size:
+            sample_size = self.client_data_size[self.selected_client_id]
+        #get the rank of the client size in the list of clients
+        for size in self.client_data_size.values():
+            if size<sample_size:
+                rank+=1
+        
+        if len(self.updates) == 0 or sample_size==-1:
+            r = Config().parameters.lora.r
+        else:
+            r = rank/len(self.updates)*Config().parameters.lora.r
+            r= int(r)
+        
+        logging.info(f"Client:{self.selected_client_id} Datasize:{sample_size} Rank:{r}")
+        return [payload,r]
     def save_to_checkpoint(self):
         logging.info("Skipping checkpoint.")
 
