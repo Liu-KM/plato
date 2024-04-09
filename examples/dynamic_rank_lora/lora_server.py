@@ -41,14 +41,14 @@ class Server(fedavg_lora.Server):
             sample_size = self.client_data_size[self.selected_client_id]
         #get the rank of the client size in the list of clients
         for size in self.client_data_size.values():
-            if size<sample_size:
+            if size<=sample_size:
                 rank+=1
         
         if len(self.updates) == 0 or sample_size==-1:
             r = Config().parameters.lora.r
         else:
-            r = rank/len(self.updates)*Config().parameters.lora.r
-            r=int(r)
+            r = (rank/len(self.client_data_size))*Config().parameters.lora.r
+            r=max(int(r),1)
         
         logging.info(f"Client:{self.selected_client_id} Datasize:{sample_size} Rank:{r}")
         return [payload,r]
