@@ -23,12 +23,14 @@ data:
 
     # Number of samples in each partition
     partition_size: 200
-    min_partition_size: 50
-    client_quantity_concentration: 0.3
-    label_concentration: 0.3
+    concentration: 0.5
+    
     # IID or non-IID?
-    sampler: distribution_noniid
-
+    sampler: noniid
+    partition_distribution:
+        distribution: uniform
+        low: 0.4
+        high: 1.0
     # The random seed for sampling data
     random_seed: 42
 
